@@ -72,11 +72,50 @@ api.add_resource(Users, '/api/users/')
 api.add_resource(User, '/api/users/<int:id>')
 
 @app.route("/")
-def hello():
-    return "Hello, Javeria!"
+def home():
+    return redirect(url_for("list_users"))
 
 with app.app_context():
     db.create_all()
+
+from flask import render_template, request, redirect, url_for
+
+# Show all users
+@app.route("/users")
+def list_users():
+    users = UserModel.query.all()
+    return render_template("index.html", users=users)
+
+# Create user form
+@app.route("/users/create", methods=["GET", "POST"])
+def create_user():
+    if request.method == "POST":
+        name = request.form["name"]
+        email = request.form["email"]
+        new_user = UserModel(name=name, email=email)
+        db.session.add(new_user)
+        db.session.commit()
+        return redirect(url_for("list_users"))
+    return render_template("create.html")
+
+# Update user
+@app.route("/users/update/<int:id>", methods=["GET", "POST"])
+def update_user(id):
+    user = UserModel.query.get_or_404(id)
+    if request.method == "POST":
+        user.name = request.form["name"]
+        user.email = request.form["email"]
+        db.session.commit()
+        return redirect(url_for("list_users"))
+    return render_template("update.html", user=user)
+
+# Delete user
+@app.route("/users/delete/<int:id>")
+def delete_user(id):
+    user = UserModel.query.get_or_404(id)
+    db.session.delete(user)
+    db.session.commit()
+    return redirect(url_for("list_users"))
 
 if __name__ == "__main__":
     app.run(debug=True)
